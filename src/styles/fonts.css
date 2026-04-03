@@ -1,0 +1,54 @@
+/* =========================
+   GOOGLE FONTS IMPORT
+========================= */
+
+/* Montserrat (UI / body) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+
+/* Bodoni Moda (headings / luxury style) */
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;600;700;800&display=swap');
+
+
+/* =========================
+   FONT VARIABLES
+========================= */
+:root {
+  --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Bodoni Moda', serif;
+}
+
+
+/* =========================
+   BASE USAGE
+========================= */
+
+/* Body = clean modern */
+body {
+  font-family: var(--font-sans);
+}
+
+/* Headings = luxury */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+
+/* =========================
+   OPTIONAL IMPROVEMENTS
+========================= */
+
+/* Better readability */
+body {
+  line-height: 1.6;
+}
+
+/* Luxury spacing for titles */
+h1, h2 {
+  letter-spacing: 0.5px;
+}
+
+/* Buttons clean look */
+button {
+  font-family: var(--font-sans);
+  font-weight: 500;
+}

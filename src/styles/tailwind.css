@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@source "../**/*.{html,js,ts,jsx,tsx,php}";
+
+@import "tw-animate-css";
+
+@layer utilities {
+  .container-custom {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .frame-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+
+  .frame-item {
+    @apply border border-border rounded-lg p-2 cursor-pointer bg-card transition;
+  }
+
+  .frame-item:hover {
+    @apply border-primary;
+  }
+
+  .frame-item.active {
+    @apply border-2 border-primary;
+  }
+
+  .preview-box {
+    @apply bg-card border border-border rounded-lg flex items-center justify-center;
+    min-height: 400px;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  .btn-success {
+    @apply bg-success text-success-foreground;
+  }
+
+  .btn-outline {
+    @apply border border-border bg-transparent text-foreground;
+  }
+
+  .input {
+    @apply w-full border border-border rounded-md px-3 py-2 text-foreground;
+    background: var(--input-background);
+  }
+
+  .input:focus {
+    @apply outline-none ring-2 ring-primary;
+  }
+}
