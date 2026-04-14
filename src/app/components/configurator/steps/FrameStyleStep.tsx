@@ -10,6 +10,7 @@ import { formatSizePair } from '../configurator-utils';
 interface FrameStyleStepProps {
   config: FrameConfig;
   updateConfig: (updates: Partial<FrameConfig>) => void;
+  stepNumber: number;
   t: ConfiguratorTranslations;
 }
 
@@ -92,12 +93,12 @@ function FrameStyleCard({
   );
 }
 
-export function FrameStyleStep({ config, updateConfig, t }: FrameStyleStepProps) {
+export function FrameStyleStep({ config, updateConfig, stepNumber, t }: FrameStyleStepProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
-          2
+          {stepNumber}
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-foreground">{t.steps.frameModel}</h3>

@@ -1,5 +1,11 @@
 import { Ruler } from 'lucide-react';
 import { FrameConfig } from '../../../App';
+import { getCropMemoryTransitionUpdate } from '../artwork-crop';
+import { getActiveGalleryWallItem, updateGalleryWallItem } from '../gallery-wall';
+import {
+  getArtworkRatioLock,
+  getArtworkSizeUpdateForInput,
+} from '../artwork-ratios';
 import type { ConfiguratorTranslations } from '../configurator-translations';
 import { FRAME_STYLES, type Unit } from '../configurator-data';
 import {
@@ -16,22 +22,65 @@ interface ArtworkSizeStepProps {
 }
 
 export function ArtworkSizeStep({ config, updateConfig, t }: ArtworkSizeStepProps) {
+  const activeGalleryItem = getActiveGalleryWallItem(
+    config.galleryItems,
+    config.activeGalleryItemId,
+  );
+  const effectiveConfig =
+    config.compositionMode === 'gallery-wall' && activeGalleryItem
+      ? {
+          ...config,
+          artworkWidthCm: activeGalleryItem.artworkWidthCm,
+          artworkHeightCm: activeGalleryItem.artworkHeightCm,
+          artworkRatioMode: activeGalleryItem.artworkRatioMode,
+          artworkRatioWidth: activeGalleryItem.artworkRatioWidth,
+          artworkRatioHeight: activeGalleryItem.artworkRatioHeight,
+          selectedArtworkRatioId: activeGalleryItem.selectedArtworkRatioId,
+          uploadedArtworkCropX: activeGalleryItem.uploadedArtworkCropX,
+          uploadedArtworkCropY: activeGalleryItem.uploadedArtworkCropY,
+          uploadedArtworkCropScale: activeGalleryItem.uploadedArtworkCropScale,
+          uploadedArtworkCropPresets: activeGalleryItem.uploadedArtworkCropPresets,
+        }
+      : config;
   const units: Unit[] = ['mm', 'cm', 'inch'];
-  const widthValue = getDisplaySize(config.artworkWidthCm, config.unit);
-  const heightValue = getDisplaySize(config.artworkHeightCm, config.unit);
+  const widthValue = getDisplaySize(effectiveConfig.artworkWidthCm, config.unit);
+  const heightValue = getDisplaySize(effectiveConfig.artworkHeightCm, config.unit);
   const selectedFrame = FRAME_STYLES.find((frame) => frame.id === config.frameStyle) ?? FRAME_STYLES[0];
-  const error = getFrameValidationMessage(config, t);
+  const error = getFrameValidationMessage(effectiveConfig, t);
+  const ratioLock = getArtworkRatioLock(effectiveConfig);
 
   const handleDimensionChange = (key: 'artworkWidthCm' | 'artworkHeightCm', rawValue: string) => {
-    const nextValue = Number.parseInt(rawValue, 10);
+    const nextValue = Number.parseFloat(rawValue);
     const nextCmValue = convertToCm(Number.isFinite(nextValue) ? nextValue : 0, config.unit);
+    const nextSize = getArtworkSizeUpdateForInput(effectiveConfig, key, nextCmValue);
+    const cropUpdate = getCropMemoryTransitionUpdate(
+      effectiveConfig,
+      nextSize.artworkWidthCm,
+      nextSize.artworkHeightCm,
+    );
 
-    if (key === 'artworkWidthCm') {
-      updateConfig({ artworkWidthCm: nextCmValue });
+    if (config.compositionMode === 'gallery-wall' && activeGalleryItem) {
+      updateConfig({
+        galleryItems: updateGalleryWallItem(config.galleryItems, activeGalleryItem.id, {
+          artworkWidthCm: nextSize.artworkWidthCm,
+          artworkHeightCm: nextSize.artworkHeightCm,
+          artworkRatioMode: nextSize.artworkRatioMode,
+          artworkRatioWidth: nextSize.artworkRatioWidth,
+          artworkRatioHeight: nextSize.artworkRatioHeight,
+          selectedArtworkRatioId: nextSize.selectedArtworkRatioId,
+          uploadedArtworkCropX: cropUpdate.uploadedArtworkCropX,
+          uploadedArtworkCropY: cropUpdate.uploadedArtworkCropY,
+          uploadedArtworkCropScale: cropUpdate.uploadedArtworkCropScale,
+          uploadedArtworkCropPresets: cropUpdate.uploadedArtworkCropPresets,
+        }),
+      });
       return;
     }
 
-    updateConfig({ artworkHeightCm: nextCmValue });
+    updateConfig({
+      ...nextSize,
+      ...cropUpdate,
+    });
   };
 
   return (
@@ -57,7 +106,7 @@ export function ArtworkSizeStep({ config, updateConfig, t }: ArtworkSizeStepProp
               onChange={(e) => handleDimensionChange('artworkWidthCm', e.target.value)}
               className="w-full rounded-lg border border-border px-4 py-2 outline-none transition-shadow focus:border-primary focus:ring-2 focus:ring-primary"
               min="1"
-              step="1"
+              step="0.1"
             />
           </div>
 
@@ -69,7 +118,7 @@ export function ArtworkSizeStep({ config, updateConfig, t }: ArtworkSizeStepProp
               onChange={(e) => handleDimensionChange('artworkHeightCm', e.target.value)}
               className="w-full rounded-lg border border-border px-4 py-2 outline-none transition-shadow focus:border-primary focus:ring-2 focus:ring-primary"
               min="1"
-              step="1"
+              step="0.1"
             />
           </div>
         </div>
@@ -94,9 +143,16 @@ export function ArtworkSizeStep({ config, updateConfig, t }: ArtworkSizeStepProp
         </div>
 
         <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-          <div>{t.steps.internalExactSize}: {config.artworkWidthCm} x {config.artworkHeightCm} cm</div>
+          <div>{t.steps.internalExactSize}: {effectiveConfig.artworkWidthCm} x {effectiveConfig.artworkHeightCm} cm</div>
           <div>{t.steps.allowedForFrame} {selectedFrame.id}: {formatSizePair(selectedFrame.minWidthCm, selectedFrame.minHeightCm, config.unit)} - {formatSizePair(selectedFrame.maxWidthCm, selectedFrame.maxHeightCm, config.unit)}</div>
         </div>
+
+        {ratioLock ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{t.steps.ratioLockedTo}:</span>{' '}
+            {ratioLock.label}. {t.steps.ratioWillUpdate}
+          </div>
+        ) : null}
 
         {error ? (
           <div className="rounded-lg border border-[var(--accent-brand)]/20 bg-[color-mix(in_srgb,var(--accent-brand)_10%,white)] p-3">

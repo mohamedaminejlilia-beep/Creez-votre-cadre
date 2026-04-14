@@ -2,7 +2,7 @@ import { Square } from 'lucide-react';
 import { FrameConfig } from '../../../App';
 import type { ConfiguratorTranslations } from '../configurator-translations';
 import { MAT_COLORS } from '../configurator-data';
-import { getFrameById, supportsBoxMat } from '../configurator-utils';
+import { getAvailableMatTypes, getFrameById, supportsBoxMat } from '../configurator-utils';
 
 interface MatStepProps {
   config: FrameConfig;
@@ -105,16 +105,38 @@ function RangeField({
   );
 }
 
+function LayerThicknessField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <RangeField
+      label={label}
+      value={value}
+      min={2}
+      max={10}
+      step={0.5}
+      onChange={onChange}
+    />
+  );
+}
+
 export function MatStep({ config, updateConfig, stepNumber, t }: MatStepProps) {
   const frame = getFrameById(config.frameStyle);
   const boxCompatible = supportsBoxMat(frame);
+  const allowedMatTypes = getAvailableMatTypes(frame);
   const cards: MatTypeCard[] = [
-    { id: 'single', title: t.steps.matTypeSingle, description: t.steps.matTypeSingleDescription },
-    { id: 'double', title: t.steps.matTypeDouble, description: t.steps.matTypeDoubleDescription },
-    { id: 'v_groove', title: t.steps.matTypeVGroove, description: t.steps.matTypeVGrooveDescription },
-    { id: 'triple', title: t.steps.matTypeTriple, description: t.steps.matTypeTripleDescription },
-    { id: 'box', title: t.steps.matTypeBox, description: t.steps.matTypeBoxDescription, disabled: !boxCompatible, badge: !boxCompatible ? t.steps.boxIncompatible : undefined },
+    { id: 'single', title: t.steps.matTypeSingle, description: t.steps.matTypeSingleDescription, disabled: !allowedMatTypes.includes('single') },
+    { id: 'double', title: t.steps.matTypeDouble, description: t.steps.matTypeDoubleDescription, disabled: !allowedMatTypes.includes('double') },
+    { id: 'v_groove', title: t.steps.matTypeVGroove, description: t.steps.matTypeVGrooveDescription, disabled: !allowedMatTypes.includes('v_groove') },
+    { id: 'triple', title: t.steps.matTypeTriple, description: t.steps.matTypeTripleDescription, disabled: !allowedMatTypes.includes('triple') },
     { id: 'multiple', title: t.steps.matTypeMultiple, description: t.steps.matTypeMultipleDescription, disabled: true, badge: t.steps.comingSoon },
+    { id: 'box', title: t.steps.matTypeBox, description: t.steps.matTypeBoxDescription, disabled: !allowedMatTypes.includes('box') || !boxCompatible, badge: !boxCompatible ? t.steps.boxIncompatible : undefined },
   ];
 
   const isDouble = config.matType === 'double';
@@ -192,13 +214,10 @@ export function MatStep({ config, updateConfig, stepNumber, t }: MatStepProps) {
               </div>
             </div>
 
-            <RangeField
-              label={t.steps.matThickness}
-              value={config.matThicknessCm}
-              min={2}
-              max={10}
-              step={0.5}
-              onChange={(value) => updateConfig({ matThicknessCm: value })}
+            <LayerThicknessField
+              label={t.steps.matTopThickness}
+              value={config.matTopThicknessCm}
+              onChange={(value) => updateConfig({ matTopThicknessCm: value, matThicknessCm: value })}
             />
 
             <ColorPicker
@@ -209,33 +228,43 @@ export function MatStep({ config, updateConfig, stepNumber, t }: MatStepProps) {
 
             {isDouble || isTriple ? (
               <>
-                <ColorPicker
-                  label={isTriple ? t.steps.matMiddleColor : t.steps.matBottomColor}
-                  value={isTriple ? config.matMiddleColor : config.matBottomColor}
-                  onChange={(value) => updateConfig(isTriple ? { matMiddleColor: value } : { matBottomColor: value })}
-                />
-                <ColorPicker
-                  label={t.steps.matBottomColor}
-                  value={config.matBottomColor}
-                  onChange={(value) => updateConfig({ matBottomColor: value })}
-                />
-                <RangeField
-                  label={t.steps.matReveal}
-                  value={config.matRevealCm}
-                  min={0.2}
-                  max={1.5}
-                  step={0.1}
-                  onChange={(value) => updateConfig({ matRevealCm: value })}
-                />
+                {isDouble ? (
+                  <>
+                    <LayerThicknessField
+                      label={t.steps.matBottomThickness}
+                      value={config.matBottomThicknessCm}
+                      onChange={(value) => updateConfig({ matBottomThicknessCm: value })}
+                    />
+                    <ColorPicker
+                      label={t.steps.matBottomColor}
+                      value={config.matBottomColor}
+                      onChange={(value) => updateConfig({ matBottomColor: value })}
+                    />
+                  </>
+                ) : null}
                 {isTriple ? (
-                  <RangeField
-                    label={t.steps.matRevealSecond}
-                    value={config.matRevealSecondCm}
-                    min={0.2}
-                    max={1.2}
-                    step={0.1}
-                    onChange={(value) => updateConfig({ matRevealSecondCm: value })}
-                  />
+                  <>
+                    <LayerThicknessField
+                      label={t.steps.matMiddleThickness}
+                      value={config.matMiddleThicknessCm}
+                      onChange={(value) => updateConfig({ matMiddleThicknessCm: value })}
+                    />
+                    <ColorPicker
+                      label={t.steps.matMiddleColor}
+                      value={config.matMiddleColor}
+                      onChange={(value) => updateConfig({ matMiddleColor: value })}
+                    />
+                    <LayerThicknessField
+                      label={t.steps.matBottomThickness}
+                      value={config.matBottomThicknessCm}
+                      onChange={(value) => updateConfig({ matBottomThicknessCm: value })}
+                    />
+                    <ColorPicker
+                      label={t.steps.matBottomColor}
+                      value={config.matBottomColor}
+                      onChange={(value) => updateConfig({ matBottomColor: value })}
+                    />
+                  </>
                 ) : null}
               </>
             ) : null}

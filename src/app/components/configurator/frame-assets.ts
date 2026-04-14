@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getConfiguratorAssetUrl } from './asset-paths';
 
 export type FrameAssetName = 'front' | 'closeup' | 'profile' | 'diffuse';
 export interface FrameSliceAssets {
@@ -14,7 +15,7 @@ export interface FrameSliceAssets {
 
 export function getFrameAssetUrl(frameId: string, asset: FrameAssetName): string {
   const extension = asset === 'diffuse' ? 'jpg' : 'png';
-  return `/frames/${frameId}/${asset}.${extension}`;
+  return getConfiguratorAssetUrl(`frames/${frameId}/${asset}.${extension}`);
 }
 
 export function useFrameAsset(frameId: string, asset: FrameAssetName) {
@@ -49,14 +50,14 @@ export function useFrameAsset(frameId: string, asset: FrameAssetName) {
 
 export function getFrameSliceAssets(frameId: string): FrameSliceAssets {
   return {
-    cornerTl: `/frames/${frameId}/corner-tl.png`,
-    cornerTr: `/frames/${frameId}/corner-tr.png`,
-    cornerBl: `/frames/${frameId}/corner-bl.png`,
-    cornerBr: `/frames/${frameId}/corner-br.png`,
-    edgeTop: `/frames/${frameId}/edge-top.png`,
-    edgeBottom: `/frames/${frameId}/edge-bottom.png`,
-    edgeLeft: `/frames/${frameId}/edge-left.png`,
-    edgeRight: `/frames/${frameId}/edge-right.png`,
+    cornerTl: getConfiguratorAssetUrl(`frames/${frameId}/corner-tl.png`),
+    cornerTr: getConfiguratorAssetUrl(`frames/${frameId}/corner-tr.png`),
+    cornerBl: getConfiguratorAssetUrl(`frames/${frameId}/corner-bl.png`),
+    cornerBr: getConfiguratorAssetUrl(`frames/${frameId}/corner-br.png`),
+    edgeTop: getConfiguratorAssetUrl(`frames/${frameId}/edge-top.png`),
+    edgeBottom: getConfiguratorAssetUrl(`frames/${frameId}/edge-bottom.png`),
+    edgeLeft: getConfiguratorAssetUrl(`frames/${frameId}/edge-left.png`),
+    edgeRight: getConfiguratorAssetUrl(`frames/${frameId}/edge-right.png`),
   };
 }
 

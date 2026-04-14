@@ -1,7 +1,6 @@
 import type { FrameConfig } from '../../App';
 import type { Glazing } from './configurator-data';
-import { applyInternalPricingAdjustments, type PhotoMultiplier } from './internal-pricing';
-import { getEffectiveGlazing, getEffectiveMatEnabled, getFrameById } from './configurator-utils';
+import { getEffectiveGlazing, getEffectiveMatEnabled, getEffectiveMatThicknesses, getFrameById } from './configurator-utils';
 
 export interface WorkbookPricingResult {
   selectedTotal: number;
@@ -20,8 +19,6 @@ export interface WorkbookPricingResult {
   workbookAreaChargeTriple: number;
   workbookBaguettePriceVGroove: number;
   workbookAreaChargeVGroove: number;
-  workbookBaguettePriceMultiple: number;
-  workbookAreaChargeMultiple: number;
   workbookBaguettePriceBoite: number;
   workbookAreaChargeBoite: number;
   customerNoMatPrice: number;
@@ -29,7 +26,6 @@ export interface WorkbookPricingResult {
   customerWithMatDouble: number;
   customerWithMatTriple: number;
   customerWithMatVGroove: number;
-  customerWithMatMultiple: number;
   customerWithMatBoite: number;
   framePricePerMl: number;
   cmAdd: number;
@@ -49,14 +45,8 @@ export interface WorkbookPricingResult {
   roundedWithMatTriple: number;
   withMatVGroove: number;
   roundedWithMatVGroove: number;
-  withMatMultiple: number;
-  roundedWithMatMultiple: number;
   withMatBoite: number;
   roundedWithMatBoite: number;
-  paperPlumeAndAccessories: number;
-  roundedPaperPlumeAndAccessories: number;
-  multiPhotoSimple: number;
-  specialMode: 'none' | 'paper_plume' | 'multi_photo_simple';
   glazingUsed: Glazing;
   missingSource: null | 'Liste Baguette' | 'CM';
 }
@@ -71,12 +61,12 @@ function getMatPricingProfile(config: FrameConfig) {
       return { label: 'WITH_MAT_DOUBLE', baseType: 'double' as const };
     case 'triple':
       return { label: 'WITH_MAT_TRIPLE', baseType: 'triple' as const };
+    case 'multiple':
+      return { label: 'WITH_MAT_MULTIPLE', baseType: 'multiple' as const };
     case 'v_groove':
       return { label: 'WITH_MAT_V_GROOVE', baseType: 'v_groove' as const };
     case 'box':
       return { label: 'WITH_MAT_BOX', baseType: 'box' as const };
-    case 'multiple':
-      return { label: 'WITH_MAT_MULTIPLE', baseType: 'multiple' as const };
     case 'single':
     default:
       return { label: 'WITH_MAT_SINGLE', baseType: 'single' as const };
@@ -98,8 +88,6 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
   const workbookIncludesGlass = frame.supportsGlass;
   const framePricePerMl = frame.workbookPricePerMl;
   const cmAdd = frame.cmAdd;
-  const photoMultiplier = config.internalPricing?.photoMultiplier ?? 1;
-  const papierPlumeEnabled = config.internalPricing?.papierPlumeEnabled ?? false;
 
   if (!Number.isFinite(framePricePerMl)) {
     return emptyPricing('Liste Baguette');
@@ -109,11 +97,12 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
     return emptyPricing('CM');
   }
 
+  const totalMatThicknessCm = matEnabled ? getEffectiveMatThicknesses(config).total : 0;
   const widthCm = matEnabled
-    ? config.artworkWidthCm + (config.matThicknessCm * 2)
+    ? config.artworkWidthCm + (totalMatThicknessCm * 2)
     : config.artworkWidthCm;
   const heightCm = matEnabled
-    ? config.artworkHeightCm + (config.matThicknessCm * 2)
+    ? config.artworkHeightCm + (totalMatThicknessCm * 2)
     : config.artworkHeightCm;
   const baguetteLengthM = (((widthCm / 100) + (heightCm / 100) + ((cmAdd * 2) / 100)) * 2);
   const areaM2 = (widthCm / 100) * (heightCm / 100);
@@ -132,13 +121,8 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
   const roundedWithMatTriple = mround10(withMatTriple);
   const withMatVGroove = noMatPrice + matSimplePrice + 50;
   const roundedWithMatVGroove = mround10(withMatVGroove);
-  const withMatMultiple = noMatPrice + (matSimplePrice * 2);
-  const roundedWithMatMultiple = mround10(withMatMultiple);
   const withMatBoite = noMatPrice + (matSimplePrice * 3);
   const roundedWithMatBoite = mround10(withMatBoite);
-  const paperPlumeAndAccessories = noMatPrice * 1.2;
-  const roundedPaperPlumeAndAccessories = mround10(paperPlumeAndAccessories);
-  const multiPhotoSimple = roundedWithMatSimple * photoMultiplier;
   const workbookAreaChargeNoMat = 200;
   const baguettePriceNoMatPerMl = roundedNoMatPrice / baguetteLengthM;
   const customerNoMatPrice = baguetteLengthM * baguettePriceNoMatPerMl;
@@ -159,19 +143,13 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
   const workbookBaguettePriceVGroove = consultationBaguettePrice(roundedWithMatVGroove, baguetteLengthM, 75.92);
   const customerWithMatVGroove = (baguetteLengthM * workbookBaguettePriceVGroove) + (areaM2 * workbookAreaChargeVGroove);
 
-  const workbookAreaChargeMultiple = workbookAreaChargeSimple * 2;
-  const workbookBaguettePriceMultiple = consultationBaguettePrice(roundedWithMatMultiple, baguetteLengthM, 51.84);
-  const customerWithMatMultiple = (baguetteLengthM * workbookBaguettePriceMultiple) + (areaM2 * workbookAreaChargeMultiple);
-
   const workbookAreaChargeBoite = workbookAreaChargeSimple * 3;
   const workbookBaguettePriceBoite = consultationBaguettePrice(roundedWithMatBoite, baguetteLengthM, 77.76);
   const customerWithMatBoite = (baguetteLengthM * workbookBaguettePriceBoite) + (areaM2 * workbookAreaChargeBoite);
 
   let baseSelectedTotal = customerNoMatPrice;
-  let selectedTotal = customerNoMatPrice;
   let selectedLabel = 'NO_MAT';
-  let selectedRounded = true;
-  let specialMode: WorkbookPricingResult['specialMode'] = 'none';
+  const selectedRounded = true;
 
   const pricingProfile = getMatPricingProfile(config);
 
@@ -188,12 +166,12 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
       baseSelectedTotal = customerWithMatTriple;
       selectedLabel = pricingProfile.label;
       break;
-    case 'v_groove':
-      baseSelectedTotal = customerWithMatVGroove;
+    case 'multiple':
+      baseSelectedTotal = customerWithMatSimple;
       selectedLabel = pricingProfile.label;
       break;
-    case 'multiple':
-      baseSelectedTotal = customerWithMatMultiple;
+    case 'v_groove':
+      baseSelectedTotal = customerWithMatVGroove;
       selectedLabel = pricingProfile.label;
       break;
     case 'box':
@@ -206,23 +184,7 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
       break;
   }
 
-  const internalAdjustment = applyInternalPricingAdjustments(baseSelectedTotal, {
-    papierPlumeEnabled,
-    photoMultiplier,
-  });
-
-  selectedTotal = internalAdjustment.finalPrice;
-  selectedRounded = internalAdjustment.rounded;
-
-  if (papierPlumeEnabled) {
-    selectedLabel = 'PAPER_PLUME_ACCESSORIES';
-    specialMode = 'paper_plume';
-  }
-
-  if (!papierPlumeEnabled && config.matType === 'single' && photoMultiplier > 1) {
-    selectedLabel = 'MULTI_PHOTO_SIMPLE';
-    specialMode = 'multi_photo_simple';
-  }
+  const selectedTotal = baseSelectedTotal;
 
   return {
     selectedTotal,
@@ -241,8 +203,6 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
     workbookAreaChargeTriple,
     workbookBaguettePriceVGroove,
     workbookAreaChargeVGroove,
-    workbookBaguettePriceMultiple,
-    workbookAreaChargeMultiple,
     workbookBaguettePriceBoite,
     workbookAreaChargeBoite,
     customerNoMatPrice,
@@ -250,7 +210,6 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
     customerWithMatDouble,
     customerWithMatTriple,
     customerWithMatVGroove,
-    customerWithMatMultiple,
     customerWithMatBoite,
     framePricePerMl,
     cmAdd,
@@ -270,14 +229,8 @@ export function calculateWorkbookPricing(config: FrameConfig): WorkbookPricingRe
     roundedWithMatTriple,
     withMatVGroove,
     roundedWithMatVGroove,
-    withMatMultiple,
-    roundedWithMatMultiple,
     withMatBoite,
     roundedWithMatBoite,
-    paperPlumeAndAccessories,
-    roundedPaperPlumeAndAccessories,
-    multiPhotoSimple,
-    specialMode,
     glazingUsed: glazing,
     missingSource: null,
   };
@@ -301,8 +254,6 @@ function emptyPricing(source: 'Liste Baguette' | 'CM'): WorkbookPricingResult {
     workbookAreaChargeTriple: 0,
     workbookBaguettePriceVGroove: 0,
     workbookAreaChargeVGroove: 0,
-    workbookBaguettePriceMultiple: 0,
-    workbookAreaChargeMultiple: 0,
     workbookBaguettePriceBoite: 0,
     workbookAreaChargeBoite: 0,
     customerNoMatPrice: 0,
@@ -310,7 +261,6 @@ function emptyPricing(source: 'Liste Baguette' | 'CM'): WorkbookPricingResult {
     customerWithMatDouble: 0,
     customerWithMatTriple: 0,
     customerWithMatVGroove: 0,
-    customerWithMatMultiple: 0,
     customerWithMatBoite: 0,
     framePricePerMl: 0,
     cmAdd: 0,
@@ -330,14 +280,8 @@ function emptyPricing(source: 'Liste Baguette' | 'CM'): WorkbookPricingResult {
     roundedWithMatTriple: 0,
     withMatVGroove: 0,
     roundedWithMatVGroove: 0,
-    withMatMultiple: 0,
-    roundedWithMatMultiple: 0,
     withMatBoite: 0,
     roundedWithMatBoite: 0,
-    paperPlumeAndAccessories: 0,
-    roundedPaperPlumeAndAccessories: 0,
-    multiPhotoSimple: 0,
-    specialMode: 'none',
     glazingUsed: 'none',
     missingSource: source,
   };
